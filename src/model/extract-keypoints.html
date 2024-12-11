@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Automated Keypoint Extraction</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+<button id="process-button">Extract from images</button>
+<p id="status"></p>
+
+<script>
+    (async () => {
+        const statusElement = document.getElementById('status');
+
+        function updateStatus(message) {
+            statusElement.textContent = message;
+            console.log(message);
+        }
+
+        const classes = ['rock', 'paper', 'scissors'];
+        const labels = { rock: 0, paper: 1, scissors: 2 };
+        const BASE_URL = 'http://localhost:8765/dataset/train/';
+        const data = [];
+
+        updateStatus('Loading Handpose model...');
+        const handposeModel = await handpose.load();
+        updateStatus('Handpose model loaded.');
+
+        async function fetchImageList(className) {
+            const response = await fetch(`${BASE_URL}${className}/`);
+            const text = await response.text();
+            const doc = (new DOMParser()).parseFromString(text, 'text/html');
+
+            return Array.from(doc.querySelectorAll('a'))
+                .map(link => link.getAttribute('href'))
+                .filter(href => href.endsWith('.png'));
+        }
+
+        function normalizeKeypoints(keypoints) {
+            const reshaped = [];
+            for (let i = 0; i < keypoints.length; i += 3) {
+                reshaped.push([keypoints[i], keypoints[i + 1], keypoints[i + 2]]);
+            }
+
+            const meanX = reshaped.reduce((sum, kp) => sum + kp[0], 0) / reshaped.length;
+            const meanY = reshaped.reduce((sum, kp) => sum + kp[1], 0) / reshaped.length;
+
+            return reshaped
+                .map(kp => [kp[0] - meanX, kp[1] - meanY])
+                .flat();
+        }
+
+        async function extractKeypointsFromURL(model, imageUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = async () => {
+                    const input = tf.browser.fromPixels(img);
+                    const predictions = await model.estimateHands(input);
+
+                    if (predictions.length > 0) {
+                        const keypoints = normalizeKeypoints(predictions[0].landmarks.flat());
+                        resolve(keypoints);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                img.onerror = (error) => {
+                    console.error(`Error loading image ${imageUrl}:`, error);
+                    resolve(null);
+                };
+                img.src = imageUrl;
+            });
+        }
+
+        async function processImages() {
+            for (const className of classes) {
+                updateStatus(`Fetching images for class: ${className}`);
+                const imageList = await fetchImageList(className);
+                updateStatus(`Found ${imageList.length} images for class: ${className}`);
+
+                for (let i = 0; i < imageList.length; i++) {
+                    const imageName = imageList[i];
+                    const imageUrl = `${BASE_URL}${className}/${imageName}`;
+                    try {
+                        const keypoints = await extractKeypointsFromURL(handposeModel, imageUrl);
+                        if (keypoints) {
+                            data.push({ keypoints, label: labels[className] });
+                            updateStatus(`Processed ${className}/${imageName} (${i + 1}/${imageList.length})`);
+                        } else {
+                            console.warn(`No hand detected in ${className}/${imageName}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error processing ${className}/${imageName}: ${error.message}`);
+                    }
+                }
+            }
+
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            saveAs(blob, 'keypoints.json');
+            updateStatus('Data saved as keypoints.json');
+        }
+
+        document.getElementById('process-button').addEventListener('click', async () => {
+            updateStatus('Starting image processing...');
+            await processImages();
+            updateStatus('Image processing completed.');
+        });
+    })();
+</script>
+</body>
+</html>

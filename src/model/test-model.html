@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Model</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+
+<button id="test-button">TEST!</button>
+<p id="status"></p>
+<div id="results"></div>
+
+<script>
+    (async () => {
+        const statusElement = document.getElementById('status');
+        const resultsElement = document.getElementById('results');
+
+        function updateStatus(message) {
+            statusElement.textContent = message;
+            console.log(message);
+        }
+
+        const classes = ['rock', 'paper', 'scissors'];
+        const labels = { rock: 0, paper: 1, scissors: 2 };
+        const labelNames = { 0: 'rock', 1: 'paper', 2: 'scissors' };
+
+        const BASE_URL = 'http://localhost:8765/';
+        const TEST_DATA_URL = `${BASE_URL}dataset/test/`;
+        const MODEL_URL = `${BASE_URL}model/rps-classifier/model.json`;
+
+        const trueLabels = [];
+        const predictedLabels = [];
+
+        updateStatus('Loading models...');
+        const [handposeModel, classifierModel] = await Promise.all([
+            handpose.load(),
+            tf.loadLayersModel(MODEL_URL)
+        ]);
+        updateStatus('Models loaded.');
+
+        async function fetchImageList(className) {
+            const response = await fetch(`${TEST_DATA_URL}${className}/`);
+            const text = await response.text();
+            const doc = (new DOMParser()).parseFromString(text, 'text/html');
+
+            return Array.from(doc.querySelectorAll('a'))
+                .map(link => link.getAttribute('href'))
+                .filter(href => href.endsWith('.png'));
+        }
+
+        function normalizeKeypoints(keypoints) {
+            const reshaped = [];
+            for (let i = 0; i < keypoints.length; i += 3) {
+                reshaped.push([keypoints[i], keypoints[i + 1], keypoints[i + 2]]);
+            }
+
+            const meanX = reshaped.reduce((sum, kp) => sum + kp[0], 0) / reshaped.length;
+            const meanY = reshaped.reduce((sum, kp) => sum + kp[1], 0) / reshaped.length;
+
+            return reshaped
+                .map(kp => [kp[0] - meanX, kp[1] - meanY])
+                .flat();
+        }
+
+        async function extractKeypointsFromURL(model, imageUrl) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = async () => {
+                    const input = tf.browser.fromPixels(img);
+                    const predictions = await model.estimateHands(input);
+
+                    if (predictions.length > 0) {
+                        const keypoints = normalizeKeypoints(predictions[0].landmarks.flat());
+                        resolve(keypoints);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                img.onerror = (error) => {
+                    console.error(`Error loading image ${imageUrl}:`, error);
+                    resolve(null);
+                };
+                img.src = imageUrl;
+            });
+        }
+
+        function predictGesture(model, keypoints) {
+            const inputTensor = tf.tensor2d([keypoints]);
+            const prediction = model.predict(inputTensor);
+
+            const predictedLabel = prediction.argMax(-1).dataSync()[0];
+            tf.dispose([inputTensor, prediction]);
+
+            return predictedLabel;
+        }
+
+        async function testImages() {
+            let totalImages = 0;
+            let correctPredictions = 0;
+
+            for (const className of classes) {
+                updateStatus(`Fetching images for class: ${className}`);
+                const imageList = await fetchImageList(className);
+                updateStatus(`Found ${imageList.length} images for class: ${className}`);
+
+                for (let i = 0; i < imageList.length; i++) {
+                    const imageName = imageList[i];
+                    const imageUrl = `${TEST_DATA_URL}${className}/${imageName}`;
+                    try {
+                        const keypoints = await extractKeypointsFromURL(handposeModel, imageUrl);
+                        if (keypoints) {
+                            const predictedLabel = predictGesture(classifierModel, keypoints);
+                            trueLabels.push(labels[className]);
+                            predictedLabels.push(predictedLabel);
+
+                            if (predictedLabel === labels[className]) {
+                                correctPredictions++;
+                            }
+
+                            totalImages++;
+                            updateStatus(`Processed ${className}/${imageName} (${i + 1}/${imageList.length})`);
+                        } else {
+                            console.warn(`No hand detected in ${className}/${imageName}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error processing ${className}/${imageName}: ${error.message}`);
+                    }
+                }
+            }
+
+            const accuracy = (correctPredictions / totalImages) * 100;
+            updateStatus(`Testing completed. Overall Accuracy: ${accuracy.toFixed(2)}%`);
+
+            displayConfusionMatrix(trueLabels, predictedLabels);
+        }
+
+        function displayConfusionMatrix(trueLabels, predictedLabels) {
+            const numClasses = classes.length;
+            const confusionMatrix = Array.from({ length: numClasses }, () =>
+                Array(numClasses).fill(0)
+            );
+
+            for (let i = 0; i < trueLabels.length; i++) {
+                confusionMatrix[trueLabels[i]][predictedLabels[i]]++;
+            }
+
+            let tableHTML = '<table style="border: 1px solid #000;"><tr><th>Actual \\ Predicted</th>';
+            for (let i = 0; i < numClasses; i++) {
+                tableHTML += `<th>${labelNames[i]}</th>`;
+            }
+            tableHTML += '</tr>';
+
+            for (let i = 0; i < numClasses; i++) {
+                tableHTML += `<tr><th>${labelNames[i]}</th>`;
+                for (let j = 0; j < numClasses; j++) {
+                    tableHTML += `<td>${confusionMatrix[i][j]}</td>`;
+                }
+                tableHTML += '</tr>';
+            }
+            tableHTML += '</table>';
+
+            resultsElement.innerHTML = `<h3>Confusion Matrix</h3>${tableHTML}`;
+
+            for (let i = 0; i < numClasses; i++) {
+                const correctPredictions = confusionMatrix[i][i];
+                const totalActual = confusionMatrix[i].reduce((sum, val) => sum + val, 0);
+                const classAccuracy = (correctPredictions / totalActual) * 100;
+                resultsElement.innerHTML += `<p>Accuracy for class ${labelNames[i]}: ${classAccuracy.toFixed(2)}%</p>`;
+            }
+        }
+
+        document.getElementById('test-button').addEventListener('click', async () => {
+            updateStatus('Starting testing...');
+            await testImages();
+            updateStatus('Testing completed.');
+        });
+    })();
+</script>
+</body>
+</html>
