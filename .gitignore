@@ -1,5 +1,5 @@
 .idea/
-
+.DS_Store
 dataset/*
 !dataset/.gitkeep
 node_modules/

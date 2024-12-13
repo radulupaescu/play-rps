@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&family=Kirang+Haerang&family=Quicksand:wght@300..700&family=Rock+3D&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&family=Kirang+Haerang&family=Quicksand:wght@300..700&family=Rock+3D&display=swap" rel="stylesheet">    <style>
+        .the-font {
+            font-family: "Kirang Haerang", system-ui;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        .rock-3d-regular {
+            font-family: "Rock 3D", system-ui;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        body {
+            background-color: #b7b7b7;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 768px;
+            width: 100%;
+            background-color: white;
+            color: black;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .title {
+            margin: 10px;
+        }
+
+        .footer {
+            margin: 10px;
+        }
+
+        .game-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 92%;
+            border: 1px solid white;
+            padding: 20px;
+        }
+
+        .lifebars {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .vs {
+            margin: 0 10px;
+        }
+
+        .video-stream {
+            margin-bottom: 20px;
+        }
+
+        .lifebar-container {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           width: 44%;
+        }
+
+        .label {
+            margin-bottom: 5px;
+            font-size: 1.5em;
+            z-index: 20;
+            color: white;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 40px;
+            background-color: grey;
+            position: relative;
+            margin-top: -41px;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: green;
+        }
+
+        .score {
+            font-size: 23px;
+            margin-top: -4px;
+        }
+
+        .debug-console {
+           width: 100%;
+           height: 150px;
+           overflow-y: auto;
+           border: 1px solid white;
+           padding: 10px;
+        }
+
+        .debug-message {
+            margin-bottom: 5px;
+        }
+
+        .transparent-overlay {
+            position: absolute;
+            top: 66%;
+            left: 52%;
+            transform: translate(-51%, -60%);
+            background-color: rgba(171, 12, 12, 0.5);
+            color: white;
+            padding: 10px;
+            width: 663px;
+            text-align: center;
+            font-size: 2em;
+        }
+    </style>
+    <title>Rock Paper Scissors</title>
+</head>
+<body>
+<div id="root"></div>
+<script src="/bundle.js"></script>
+</body>
+</html>

@@ -35,6 +35,6 @@ model.compile({
         ],
     });
 
-    await model.save('file://./model/rps-classifier');
+    await model.save('file://./src/game/model/rps-classifier');
     console.log('Model training and saving completed.');
 })();
