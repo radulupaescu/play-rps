@@ -6,15 +6,21 @@ const WebcamFeed = forwardRef((props, ref) => {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             if (ref.current) {
                 ref.current.srcObject = stream;
-                ref.current.play();
+                await ref.current.play();
             }
         }
         setupCamera();
     }, [ref]);
 
     return (
-        <div>
-            <video ref={ref} width={640} height={480} style={{ border: '1px solid #ccc' }} />
+        <div style={{ position: 'relative', width: '100%', maxWidth: '640px', margin: '0 auto' }}>
+            <video
+                ref={ref}
+                width="640"
+                height="480"
+                style={{ width: '100%', height: 'auto', display: 'block', border: '2px solid' }}
+                playsInline
+            />
         </div>
     );
 });

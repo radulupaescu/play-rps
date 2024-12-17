@@ -5,6 +5,7 @@ import WebcamFeed from './WebcamFeed';
 import Lifebar from './Lifebar';
 import DebugConsole from './DebugConsole';
 import TransparentOverlay from './TransparentOverlay';
+import IconDisplay from "./Icon";
 
 const GESTURES = ['rock', 'paper', 'scissors'];
 const HAND_CONNECTIONS = [
@@ -34,6 +35,10 @@ const App = () => {
     const [playerScore, setPlayerScore] = useState(0);
     const [computerLife, setComputerLife] = useState(1);
     const [computerScore, setComputerScore] = useState(0);
+    const [playerIcon, setPlayerIcon] = useState(null);
+    const [computerIcon, setComputerIcon] = useState(null);
+    const [match, setMatch] = useState(0);
+
 
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
@@ -149,6 +154,11 @@ const App = () => {
                 computerGesture: pickWinningGesture(prematureGesture),
                 outcome: 'Too fast!',
             });
+
+            setPlayerIcon(prematureGesture);
+            setComputerIcon(pickWinningGesture(prematureGesture));
+            setMatch(match + 1);
+
             setPrematureGesture(null);
             setGameState('show_result');
         }
@@ -211,6 +221,9 @@ const App = () => {
             const outcome = computeResult(userGesture, computerGesture);
 
             setResult({ userGesture, computerGesture, outcome });
+            setPlayerIcon(userGesture);
+            setComputerIcon(computerGesture);
+            setMatch(match + 1);
         }
 
         setGameState('show_result');
@@ -335,13 +348,13 @@ const App = () => {
         case 'countdown':
             switch (countdownStage) {
                 case '3':
-                    overlayText = '3 ...';
+                    overlayText = '3';
                     break;
                 case '2':
-                    overlayText = '2 ...';
+                    overlayText = '2';
                     break;
                 case '1':
-                    overlayText = '1 ...';
+                    overlayText = '1';
                     break;
                 case 'show':
                     overlayText = 'Show!';
@@ -373,19 +386,30 @@ const App = () => {
                         score: computerScore,
                     }} alignment="right" />
                 </div>
+
+                <div className={'icons-overlay'}>
+                    <div className="left-icon">
+                        { playerIcon && <IconDisplay iconName={playerIcon} match={match} /> }
+                    </div>
+                    <div className="right-icon">
+                        { computerIcon && <IconDisplay iconName={computerIcon} match={match} /> }
+                    </div>
+                </div>
+
                 <div className="video-stream">
                     <div style={{ position: 'relative', display: 'inline-block' }}>
                         <WebcamFeed ref={videoRef} />
                         <canvas
                             ref={canvasRef}
-                            style={{ position: 'absolute', top: 0, left: 0, zIndex: 10, pointerEvents: 'none' }}
+                            // style={{ position: 'absolute', top: 0, left: 0, zIndex: 10, pointerEvents: 'none' }}
                         />
                     </div>
                 </div>
                 <TransparentOverlay text={overlayText} />
+                <span className={'log-label'}>Log (for debugging): </span>
                 <DebugConsole messages={log} />
             </div>
-            <footer className="footer">made by Radu Lupaescu in December 2024</footer>
+            <footer className="footer">Made with &#129504; and &#128400; by Radu Lupaescu in December 2024.</footer>
         </div>
     );
 };

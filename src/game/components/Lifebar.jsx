@@ -3,7 +3,7 @@ import React from 'react';
 const Lifebar = ({ label, state, alignment }) => {
     return (
         <div className={`lifebar-container ${alignment}`}>
-            <span className="label the-font">{label}</span>
+            <span className="label doto-extra-bold">{label}</span>
             <div className="progress-bar">
                 <div
                     className="progress"
@@ -13,7 +13,7 @@ const Lifebar = ({ label, state, alignment }) => {
                     }}
                 ></div>
             </div>
-            <span className="score the-font" style={{ alignSelf: alignment === 'right' ? 'flex-end' : 'flex-start', }}>Score: {state.score}</span>
+            <span className={`score doto-extra-bold`} style={{ alignSelf: alignment === 'right' ? 'flex-end' : 'flex-start', }}>Score {state.score}</span>
         </div>
     );
 };
