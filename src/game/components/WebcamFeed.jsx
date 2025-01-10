@@ -18,7 +18,7 @@ const WebcamFeed = forwardRef((props, ref) => {
                 ref={ref}
                 width="640"
                 height="480"
-                style={{ width: '100%', height: 'auto', display: 'block', border: '2px solid' }}
+                style={{ width: '100%', height: 'auto', display: 'block', border: '2px solid', transform: 'scaleX(-1)' }}
                 playsInline
             />
         </div>
